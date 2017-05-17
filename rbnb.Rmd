@@ -12,11 +12,13 @@ library(OpenStreetMap)
 library(leaflet)
 library(rgdal)
 library(dplyr)
+library(purrr)
 library(htmlwidgets)
 library(RColorBrewer)
 library(classInt)
 library(plotrix)  
 library(ggmap)
+library(magick)
 
 library(lubridate)
 ```
@@ -71,18 +73,20 @@ ggmap_berlin<- get_map(location = c(left = range_lon[1], bottom = range_lat[1], 
 
 ```{r fig.width=12, fig.height=12}
 plot_map<- function(df,title){
-col_neighbour<- grep('neigh',colnames(df),value = TRUE)
-
-df_mitte<-df %>% filter(grepl('Mitte',neighbourhood_group))
-color_hex_max='#ff5a5f'
-color_hex_min ='#0dc24b'
-col <- findColours(classIntervals(
-          df_mitte$price, 5, style="quantile"),
-          smoothColors(color_hex_min,3,color_hex_max)) 
-
-
-m<-ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude), data=df_mitte, col=col)+ggtitle(title)+theme(plot.title = element_text(size = 40, face = "bold"))
-return(m)
+  title <-strsplit(title,'.csv')[[1]]
+  col_neighbour<- grep('neigh',colnames(df),value = TRUE)
+  
+  df_mitte<-df %>% filter(grepl('Mitte',neighbourhood_group))
+  color_hex_max='#ff5a5f'
+  color_hex_min ='#0dc24b'
+  col <- findColours(classIntervals(
+            df_mitte$price, 5, style="quantile"),
+            smoothColors(color_hex_min,3,color_hex_max)) 
+  
+  
+  ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude), data=df_mitte, col=color_hex_max)+ggtitle(title)+theme(plot.title = element_text(size = 40, face = "bold"))
+  ggsave(filename = paste0("./data/maps/",title,".png"),
+             width = 8,height=8,dpi = 150)
 
 }
 ```
@@ -90,15 +94,26 @@ return(m)
 ```{r fig.width=12, fig.height=12}
 filos<- list.files(path = "data/listings/")
 
+print(filos)
+```
+
+```{r}
 for (filo in filos){
   file_path = paste0("data/listings/",filo)
   
   df<-read.csv(file_path, stringsAsFactors = FALSE)
-  print(plot_map(df,filo))
+  plot_map(df,filo)
 }
 ```
 
 
 
+```{r}
+list.files(path = "./data/maps/", pattern = "*.png", full.names = T) %>% 
+  map(image_read) %>% # reads each path file
+  image_join() %>% # joins image
+  image_animate(fps=1) %>% # animates, can opt for number of loops
+  image_write("ndwi_aug_hgm.gif") # write to current dir
+```
 
 
