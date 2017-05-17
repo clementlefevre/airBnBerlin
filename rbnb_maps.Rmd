@@ -26,12 +26,11 @@ ogrInfo(dsn = "./data/LOR_SHP/",layer="Prognoseraum_EPSG_25833")
 pol    <- readOGR(dsn="./data/LOR_SHP/",layer="Prognoseraum_EPSG_25833",p4s = "+init=epsg:25833")
 
 
-spp<-pol
+spp<- pol[which(pol$SCHLUESSEL == "0104"),]
 
-## assign original coordinate system
-pts66 = SpatialPoints(cbind(spp$lon,spp$lat), CRS("+init=epsg:25833"))
 
-spp<- spTransform(pol, CRS("+init=epsg:4326"))
+
+spp<- spTransform(spp, CRS("+init=epsg:4326"))
 
   
 map    <- get_googlemap('berlin', zoom =10) 
@@ -39,14 +38,14 @@ map    <- get_googlemap('berlin', zoom =10)
 spp.df <- fortify(spp)
 
 
+
+
 ggmap(map, extent='device', legend="bottomleft") +
-  geom_polygon(data = spp.df, aes(x = long, y=lat, group=group), 
+  geom_polygon(data = spp, aes(x = long, y=lat, group=id), 
                fill="blue", alpha=0.2) +
-  geom_path(data=spp.df, aes(x=long, y=lat, group=group), 
+  geom_path(data=spp, aes(x=long, y=lat, group=group), 
             color="gray50", size=0.3)
 ```
 
-```{r}
-plot(comm,col="#FFFFFF",lwd=.7)
-```
+
 
