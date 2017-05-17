@@ -84,14 +84,20 @@ plot_map<- function(df,title){
             smoothColors(color_hex_min,3,color_hex_max)) 
   
   
-  ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude), data=df_mitte, col=color_hex_max)+ggtitle(title)+theme(plot.title = element_text(size = 40, face = "bold"))
+  ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude), data=df_mitte, col=color_hex_max)+ggtitle(title)+theme(plot.title = element_text(size = 40, face = "bold"))+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+
   ggsave(filename = paste0("./data/maps/",title,".png"),
              width = 8,height=8,dpi = 150)
 
 }
 ```
 
-```{r fig.width=12, fig.height=12}
+```{r}
 filos<- list.files(path = "data/listings/")
 
 print(filos)
@@ -109,11 +115,47 @@ for (filo in filos){
 
 
 ```{r}
-list.files(path = "./data/maps/", pattern = "*.png", full.names = T) %>% 
+list.files(path = "./data/maps/single_anim/", pattern = "*.png", full.names = T) %>% 
   map(image_read) %>% # reads each path file
   image_join() %>% # joins image
   image_animate(fps=1) %>% # animates, can opt for number of loops
   image_write("ndwi_aug_hgm.gif") # write to current dir
 ```
+# Get summary bet neighbourhood
+```{r}
 
+df_neighbourhood <- data.frame()
+
+for (filo in filos){
+  file_path = paste0("data/listings/",filo)
+  
+  df<-read.csv(file_path, stringsAsFactors = FALSE)
+  groupy<-df %>% group_by(neighbourhood_group) %>% summarise(total_offers = n(), mean_price=mean(price))
+  year_month<-strsplit(filo,'.csv')[[1]]
+  
+  groupy$year<-as.integer(strsplit(year_month,'_')[[1]][1])
+  groupy$month<-as.integer(strsplit(year_month,'_')[[1]][2])
+ 
+  
+  df_neighbourhood<-rbind(df_neighbourhood,groupy)
+
+}
+df_neighbourhood<- df_neighbourhood %>% ungroup()
+df_neighbourhood$date <- with(df_neighbourhood, ymd(sprintf('%04d%02d%02d', year, month, 1)))
+```
+
+# Plot evolution
+```{r}
+ggplot(data=df_neighbourhood,aes(x=year,y=total_offers,fill=neighbourhood_group))+ geom_bar(position = 'dodge', stat="identity")
+ggplot(data=df_neighbourhood,aes(x=date,y=total_offers,colour=neighbourhood_group))+ geom_line()+ scale_colour_brewer(palette = "Set1")
+ggplot(data=df_neighbourhood,aes(x=date,y=mean_price,colour=neighbourhood_group))+ geom_line()+scale_colour_brewer(palette = "Set1")
+```
+
+```{r}
+library(osmar)
+```
+
+```{r}
+28267
+```
 

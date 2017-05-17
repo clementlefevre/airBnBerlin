@@ -1,0 +1,52 @@
+---
+title: "RBnB Maps SHP"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(sp)
+library(rgdal)
+library(ggmap)
+library(ggplot2)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+
+
+ogrInfo(dsn = "./data/LOR_SHP/",layer="Prognoseraum_EPSG_25833")
+
+pol    <- readOGR(dsn="./data/LOR_SHP/",layer="Prognoseraum_EPSG_25833",p4s = "+init=epsg:25833")
+
+
+spp<-pol
+
+## assign original coordinate system
+pts66 = SpatialPoints(cbind(spp$lon,spp$lat), CRS("+init=epsg:25833"))
+
+spp<- spTransform(pol, CRS("+init=epsg:4326"))
+
+  
+map    <- get_googlemap('berlin', zoom =10) 
+
+spp.df <- fortify(spp)
+
+
+ggmap(map, extent='device', legend="bottomleft") +
+  geom_polygon(data = spp.df, aes(x = long, y=lat, group=group), 
+               fill="blue", alpha=0.2) +
+  geom_path(data=spp.df, aes(x=long, y=lat, group=group), 
+            color="gray50", size=0.3)
+```
+
+```{r}
+plot(comm,col="#FFFFFF",lwd=.7)
+```
+
