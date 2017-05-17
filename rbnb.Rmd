@@ -19,12 +19,14 @@ library(classInt)
 library(plotrix)  
 library(ggmap)
 library(magick)
+library(ggthemes)
+library(scales)
 
 library(lubridate)
 ```
 
 ```{r}
-df_light<-read.csv('data/listings_light.csv')
+df_light<-read.csv('data/listings_light.csv',stringsAsFactors = FALSE)
 df_light_2015<-read.csv('data/listings_oct_2015.csv')
 ```
 
@@ -130,6 +132,7 @@ for (filo in filos){
   file_path = paste0("data/listings/",filo)
   
   df<-read.csv(file_path, stringsAsFactors = FALSE)
+  df<- df %>% filter(room_type=='Entire home/apt')
   groupy<-df %>% group_by(neighbourhood_group) %>% summarise(total_offers = n(), mean_price=mean(price))
   year_month<-strsplit(filo,'.csv')[[1]]
   
@@ -142,20 +145,59 @@ for (filo in filos){
 }
 df_neighbourhood<- df_neighbourhood %>% ungroup()
 df_neighbourhood$date <- with(df_neighbourhood, ymd(sprintf('%04d%02d%02d', year, month, 1)))
+#df_neighbourhood <- df_neighbourhood %>% filter(neighbourhood_group %in% c())
 ```
 
+## filter on biggest areas
+```{r}
+ top_6 <- c("Charlottenburg-Wilm.","Friedrichshain-Kreuzberg","Mitte","Neukölln","Pankow","Tempelhof - Schöneberg")
+mitte.areas<- c("Alexanderplatz","Brunnenstr. Nord","Brunnenstr. Süd","Moabit Ost","Moabit West","Osloer Straße" , "Parkviertel",       "Regierungsviertel","Tiergarten Süd","Wedding Zentrum")
+df_neighbourhood <- df_neighbourhood %>% filter(neighbourhood_group %in% top_6)
+
+```
 # Plot evolution
 ```{r}
-ggplot(data=df_neighbourhood,aes(x=year,y=total_offers,fill=neighbourhood_group))+ geom_bar(position = 'dodge', stat="identity")
-ggplot(data=df_neighbourhood,aes(x=date,y=total_offers,colour=neighbourhood_group))+ geom_line()+ scale_colour_brewer(palette = "Set1")
-ggplot(data=df_neighbourhood,aes(x=date,y=mean_price,colour=neighbourhood_group))+ geom_line()+scale_colour_brewer(palette = "Set1")
+show_col(economist_pal(stata=TRUE)(16))
+ggplot(data=df_neighbourhood ,aes(x=date,y=total_offers,colour=neighbourhood_group))+ geom_line()+ theme_economist()+scale_color_economist(stata = TRUE)
+ggplot(data=df_neighbourhood,aes(x=date,y=mean_price,colour=neighbourhood_group))+ geom_line()+scale_colour_brewer(palette = "Set1")+ theme_economist()
 ```
-
 ```{r}
-library(osmar)
+df.may2017<-read.csv('data/listings/2017_05.csv')
+
+df.mitte.2017 <- df.may2017 %>% filter(neighbourhood_group=='Mitte')
+groupy.mitte.may.2017<- mitte %>% ungroup() %>% group_by(neighbourhood) %>% summarise(total= n())
+groupy.mitte.may.2017  %>% select(neighbourhood) %>% collect %>% .[["neighbourhood"]]
+
+
+
 ```
 
+
+# get summary per Mitte areas :
 ```{r}
-28267
-```
+df_neighbourhood.mitte <- data.frame()
 
+for (filo in filos){
+  file_path = paste0("data/listings/",filo)
+  
+  df<-read.csv(file_path, stringsAsFactors = FALSE)
+  df<- df %>% filter(room_type=='Entire home/apt') %>% filter(neighbourhood %in% mitte.areas)
+  groupy<-df %>% group_by(neighbourhood) %>% summarise(total_offers = n(), mean_price=mean(price))
+  year_month<-strsplit(filo,'.csv')[[1]]
+  
+  groupy$year<-as.integer(strsplit(year_month,'_')[[1]][1])
+  groupy$month<-as.integer(strsplit(year_month,'_')[[1]][2])
+ 
+  
+  df_neighbourhood.mitte<-rbind(df_neighbourhood.mitte,groupy)
+
+}
+df_neighbourhood.mitte<- df_neighbourhood.mitte %>% ungroup()
+df_neighbourhood.mitte$date <- with(df_neighbourhood.mitte, ymd(sprintf('%04d%02d%02d', year, month, 1)))
+```
+# Plot evolution
+```{r}
+
+ggplot(data=df_neighbourhood.mitte ,aes(x=date,y=total_offers,colour=neighbourhood))+ geom_line()+ theme_economist()+scale_color_economist(stata = TRUE)
+ggplot(data=df_neighbourhood.mitte,aes(x=date,y=mean_price,colour=neighbourhood))+ geom_line()+theme_economist()+scale_color_economist(stata = TRUE)
+```
