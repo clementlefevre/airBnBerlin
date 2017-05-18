@@ -30,13 +30,14 @@ df_full<-read.csv('data/listing_complete//2017_05.csv')
 df_full$prico <- as.numeric(gsub('[$,]', '', df_full$price))
 df<-df_full
 
-df <- df %>% filter(room_type=='Entire home/apt') %>% filter(grepl('Mitte',neighbourhood_group_cleansed))
+df <- df %>% filter(room_type=='Entire home/apt') 
 ```
 
 ### Set map box :
 ```{r}
-range_lat<-range(df$latitude)
-range_lon<-range(df$longitude)
+df.mitte<- df %>% filter(grepl('Mitte',neighbourhood_group_cleansed))
+range_lat<-range(df.mitte$latitude)
+range_lon<-range(df.mitte$longitude)
 ```
 
 ### Load OSM Map:
@@ -64,7 +65,7 @@ df<- df  %>% mutate(AC =grepl('Wheelchair',amenities))
 map    <- get_googlemap('berlin', zoom =11, color = 'bw') 
 ```
 
-```{r fig.width=12, fig.height=12}
+```{r fig.width=8, fig.height=8}
   color_hex_min='#404040'
   color_hex_max='#ca0020'
   
@@ -72,7 +73,7 @@ df$quartile <- with(df, cut(prico/beds,
                                 breaks=quantile(prico/beds, probs=seq(0,1, by=0.25), na.rm=TRUE), 
                                 include.lowest=TRUE))
 
-   ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude,colour=quartile), data=df)+ scale_colour_brewer(palette="BuGn")
+   ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude,colour=quartile), data=df, shape=1,size=1,stroke=.5)+ scale_colour_brewer(palette="OrRd")
 ```
 ```{r}
 ggplot(data=df %>% filter(prico<200) %>% filter(neighbourhood %in% c("Mitte","Wedding","Moabit")),aes(y=prico/beds,x=neighbourhood, fill=neighbourhood))+geom_boxplot()+theme_economist()+ scale_color_economist()
