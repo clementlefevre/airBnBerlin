@@ -157,15 +157,18 @@ df_neighbourhood <- df_neighbourhood %>% filter(neighbourhood_group %in% top_6)
 ```
 # Plot evolution
 ```{r}
-show_col(economist_pal(stata=TRUE)(16))
-ggplot(data=df_neighbourhood ,aes(x=date,y=total_offers,colour=neighbourhood_group))+ geom_line()+ theme_economist()+scale_color_economist(stata = TRUE)
-ggplot(data=df_neighbourhood,aes(x=date,y=mean_price,colour=neighbourhood_group))+ geom_line()+scale_colour_brewer(palette = "Set1")+ theme_economist()
+palette<-c("#075272","#ca3016","#ffba00","#23907b", "#897a8d","#70ddca")
+
+ggplot(data=df_neighbourhood ,aes(x=date,y=total_offers,colour=neighbourhood_group))+theme_fivethirtyeight()+ geom_line(,size=1)+labs(colour="")+ theme(axis.title = element_text(),axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1),legend.text=element_text(size=10),plot.caption=element_text(size=8))+scale_x_date(breaks = pretty_breaks(15))+scale_colour_manual(values = palette)+ ggtitle("Berlin : Full appartments")+labs(caption = "©Clément Lefèvre 2017 (Sources : insideairbnb.com)")+ylab("online offers")
+
+
+ggplot(data=df_neighbourhood ,aes(x=date,y=mean_price,colour=neighbourhood_group))+theme_fivethirtyeight()+ geom_line(,size=1)+labs(colour="")+ theme(axis.title = element_text(), axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1),legend.text=element_text(size=10),plot.caption=element_text(size=8))+scale_x_date(breaks = pretty_breaks(15))+scale_colour_manual(values = palette)+ ggtitle("Berlin : Full appartments")+labs(caption = "©Clément Lefèvre 2017 (Sources : insideairbnb.com)")+ylab("euros/night")
 ```
 ```{r}
 df.may2017<-read.csv('data/listings/2017_05.csv')
 
 df.mitte.2017 <- df.may2017 %>% filter(neighbourhood_group=='Mitte')
-groupy.mitte.may.2017<- mitte %>% ungroup() %>% group_by(neighbourhood) %>% summarise(total= n())
+groupy.mitte.may.2017<- df.mitte.2017 %>% ungroup() %>% group_by(neighbourhood) %>% summarise(total= n())
 groupy.mitte.may.2017  %>% select(neighbourhood) %>% collect %>% .[["neighbourhood"]]
 
 
@@ -195,9 +198,21 @@ for (filo in filos){
 df_neighbourhood.mitte<- df_neighbourhood.mitte %>% ungroup()
 df_neighbourhood.mitte$date <- with(df_neighbourhood.mitte, ymd(sprintf('%04d%02d%02d', year, month, 1)))
 ```
+# remove some areas :
+
+```{r}
+df_neighbourhood.mitte.light<- df_neighbourhood.mitte %>% filter(!grepl("Moabit|Tier|Park",neighbourhood))
+```
+
+
 # Plot evolution
 ```{r}
+ggplot(data=df_neighbourhood.mitte.light ,aes(x=date,y=total_offers,colour=neighbourhood))+theme_fivethirtyeight()+ geom_line(,size=1)+labs(colour="")+ theme(axis.title = element_text(),axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1),legend.text=element_text(size=10),plot.caption=element_text(size=8))+scale_x_date(breaks = pretty_breaks(15))+ ggtitle("Mitte : Full appartments")+labs(caption = "©Clément Lefèvre 2017 (Sources : insideairbnb.com)")+ylab("online offers")+scale_colour_manual(values = palette)
 
-ggplot(data=df_neighbourhood.mitte ,aes(x=date,y=total_offers,colour=neighbourhood))+ geom_line()+ theme_economist()+scale_color_economist(stata = TRUE)
-ggplot(data=df_neighbourhood.mitte,aes(x=date,y=mean_price,colour=neighbourhood))+ geom_line()+theme_economist()+scale_color_economist(stata = TRUE)
+ggplot(data=df_neighbourhood.mitte.light ,aes(x=date,y=mean_price,colour=neighbourhood))+theme_fivethirtyeight()+ geom_line(,size=1)+labs(colour="")+ theme(axis.title = element_text(),axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1),legend.text=element_text(size=10),plot.caption=element_text(size=8))+scale_x_date(breaks = pretty_breaks(15))+ ggtitle("Mitte: Full appartments")+labs(caption = "©Clément Lefèvre 2017 (Sources : insideairbnb.com)")+ylab("euros/night")+scale_colour_manual(values = palette)
+
+
+```
+
+ggplot(data=df_neighbourhood.mitte ,aes(x=date,y=mean_price,colour=neighbourhood))+theme_fivethirtyeight()+ geom_line(,size=1)+labs(colour="")+ theme(axis.title = element_text(), axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1),legend.text=element_text(size=10),plot.caption=element_text(size=8))+scale_x_date(breaks = pretty_breaks(15))+scale_colour_manual(values = palette)+ ggtitle("AirBnb : Full appartments (mean price)")+labs(caption = "©Clément Lefèvre 2017 (Sources : insideairbnb.com)")+ylab("euros/night")
 ```
