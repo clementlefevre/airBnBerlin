@@ -1,0 +1,83 @@
+---
+title: "R BnB detailed"
+output: github_document
+
+---
+
+
+```{r}
+library(OpenStreetMap)
+library(leaflet)
+library(rgdal)
+library(dplyr)
+library(purrr)
+library(htmlwidgets)
+library(RColorBrewer)
+library(classInt)
+library(plotrix)  
+library(ggmap)
+library(magick)
+library(ggthemes)
+library(scales)
+library(Hmisc)
+
+library(lubridate)
+```
+
+```{r}
+df<-read.csv('data/listings/2017_05.csv')
+df_full<-read.csv('data/listing_complete//2017_05.csv')
+df_full$prico <- as.numeric(gsub('[$,]', '', df_full$price))
+df<-df_full
+
+df <- df %>% filter(room_type=='Entire home/apt') %>% filter(grepl('Mitte',neighbourhood_group_cleansed))
+```
+
+### Set map box :
+```{r}
+range_lat<-range(df$latitude)
+range_lon<-range(df$longitude)
+```
+
+### Load OSM Map:
+```{r}
+
+ggmap_berlin<- get_map(location = c(left = range_lon[1], bottom = range_lat[1], right =
+  range_lon[2], top = range_lat[2]),source="google",color="bw")
+```
+
+## Structure amenities
+```{r}
+amenities<- as.vector(df[,"amenities"])
+amenities<-unique( ul <- unlist(strsplit(amenities, "\\s+|[[:punct:]]")) )
+```
+
+## Filter on shampoo
+```{r}
+df<- df  %>% mutate(AC =grepl('Wheelchair',amenities)) 
+
+
+```
+## plot map
+
+```{r}
+map    <- get_googlemap('berlin', zoom =11, color = 'bw') 
+```
+
+```{r fig.width=12, fig.height=12}
+  color_hex_min='#404040'
+  color_hex_max='#ca0020'
+  
+df$quartile <- with(df, cut(prico/beds, 
+                                breaks=quantile(prico/beds, probs=seq(0,1, by=0.25), na.rm=TRUE), 
+                                include.lowest=TRUE))
+
+   ggmap(ggmap_berlin)+ geom_point(aes(x=longitude, y=latitude,colour=quartile), data=df)+ scale_colour_brewer(palette="BuGn")
+```
+```{r}
+ggplot(data=df %>% filter(prico<200) %>% filter(neighbourhood %in% c("Mitte","Wedding","Moabit")),aes(y=prico/beds,x=neighbourhood, fill=neighbourhood))+geom_boxplot()+theme_economist()+ scale_color_economist()
+```
+```{r}
+df %>% group_by(neighbourhood) %>% summarise(total = n()) %>% arrange(desc(total))
+```
+
