@@ -53,17 +53,15 @@ Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by press
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
 ```{r}
 
-pal <- colorQuantile(
+paletta <- colorQuantile(
   palette = "YlGnBu",
   domain = df_light$price)
 
 
 
 m<-leaflet(data = df_light) %>% addTiles() %>%   addProviderTiles(providers$CartoDB.Positron)%>%
-  addCircleMarkers(~longitude, ~latitude, popup = ~as.character(name), label = ~as.character(name),stroke = FALSE, fillOpacity = 0.8,color = ~pal(price),radius=4) %>% addLegend("bottomright", pal = pal, values = ~price,title = "Price per night - Quartiles",labFormat = labelFormat(prefix = "€")) %>% addLegend("topright",title = "Berlin Wall",col=1,labels=1) %>%  addGeoJSON(geojson)
+  addCircleMarkers(~longitude, ~latitude, popup = ~as.character(name), label = ~as.character(name),stroke = FALSE, fillOpacity = 0.8,color = ~pal(price),radius=4) %>% addLegend("bottomright", pal = paletta, values = ~price,title = "Price per night - Quartiles",labFormat = labelFormat(prefix = "€")) %>% addLegend("topright",title = "Berlin Wall",col=1,labels=1) %>%  addGeoJSON(geojson)
 
-
-  
 m
 saveWidget(m, file="m.html", selfcontained = TRUE)
 ```
@@ -71,12 +69,13 @@ saveWidget(m, file="m.html", selfcontained = TRUE)
 ```{r}
 pal <- colorQuantile(
   palette = "YlGnBu",
-  domain = df_light$availability_365)
+  n = 4,
+  domain = df_light$reviews_per_month)
 
 
 
 m2<-leaflet(data = df_light) %>% addTiles() %>%   addProviderTiles(providers$CartoDB.Positron)%>%
-  addCircleMarkers(~longitude, ~latitude, popup = ~as.character(name), label = ~as.character(name),stroke = FALSE, fillOpacity = 0.8,color = ~pal(availability_365),radius=4) %>% addLegend("bottomright", pal = pal, values = ~availability_365,title = "number_of_reviews - Quartiles",labFormat = labelFormat(prefix = "€")) %>% addLegend("topright",title = "Berlin Wall",col=1,labels=1) %>%  addGeoJSON(geojson)
+  addCircleMarkers(~longitude, ~latitude, popup = ~as.character(name), label = ~as.character(name),stroke = FALSE, fillOpacity = 0.8,color = ~pal(reviews_per_month),radius=4) %>%   addLegend("bottomright", pal = pal, values = ~reviews_per_month,title = "Price per night - Quartiles",labFormat = labelFormat(prefix = "€")) %>% addLegend("topright",title = "Berlin Wall",col=1,labels=1) %>%  addGeoJSON(geojson)
 
 
   

@@ -9,39 +9,125 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 ```{r}
 library(dplyr)
+library(stringr)
+library(stringi)
+library(tidyr)
 library(tm)
+library(ggplot2)
+library(lubridate)
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
 ```{r}
+
+col.to.exclude<-c("last_scraped","experiences_offered","country_code","country","requires_license","host_acceptance_rate","calendar_last_scraped","summary","square_feet","has_availability","license","jurisdiction_names","room_type","state","city","smart_location","neighbourhood","neighbourhood_cleansed","host_neighbourhood")
+
 df<-read.csv('data/listing_complete/2017_05.csv')
+df<- df %>% filter(room_type=='Entire home/apt')
+df<-df%>%select(-one_of(col.to.exclude))%>%select(-c(notes,host_name,host_about,interaction,access,neighborhood_overview,house_rules,transit,space,host_thumbnail_url,host_picture_url,host_url,thumbnail_url,medium_url,xl_picture_url,name,description,picture_url,listing_url))%>%select(-one_of(c("zipcode","host_verifications","weekly_price","monthly_price","street","host_location")))
+
+col_date<- c("last_review","first_review","host_since")
+
+```
+### Convert date to dax count:
+```{r}
+col_date<- c("last_review","first_review","host_since")
+df<- df %>% mutate_at(col_date,funs(ymd))
+```
+
+```{r}
+df$price <- as.numeric(gsub('[$,]', '', df$price))
+df$cleaning_fee<-as.numeric(gsub('[$,]', '', df$cleaning_fee))
+df$security_deposit<-as.numeric(gsub('[$,]', '', df$security_deposit))
+df$extra_people<-as.numeric(gsub('[$,]', '', df$extra_people))
+df$host_response_rate<-as.numeric(gsub('[,%]', '', df$host_response_rate))
+
+
+df$reviews_per_month<- as.integer(df$reviews_per_month)
+df$price_bed <- df$price/df$beds
+```
+
+## NA summary
+```{r}
+df %>% summarise_all(funs(sum(is.na(.)))) %>% gather() %>% arrange(desc(value))
 ```
 
 ## Compute term frequencies
 ```{r}
-review_corpus = Corpus(VectorSource(df$amenities))
-review_corpus = tm_map(review_corpus, content_transformer(tolower))
-
-inspect(review_corpus[1])
-review_dtm <- DocumentTermMatrix(review_corpus)
-review_dtm
-inspect(review_dtm[1:10, 1:10])
-freq = data.frame(sort(colSums(as.matrix(review_dtm)), decreasing=TRUE))
-freq
+# review_corpus = Corpus(VectorSource(df$amenities))
+# review_corpus = tm_map(review_corpus, content_transformer(tolower))
+# 
+# inspect(review_corpus[1])
+# review_dtm <- DocumentTermMatrix(review_corpus)
+# review_dtm
+# inspect(review_dtm[1:10, 1:10])
+# freq = data.frame(sort(colSums(as.matrix(review_dtm)), decreasing=TRUE))
+# freq
 ```
 
-```{r}
-df1<-head(df)
-texto<- df1 %>% mutate(vecto=str_split(amenities,","))
-texto$vecto
-```
+
 
 ```{r}
- all.string<- paste(df$amenities , collapse = "")
+all.string<- paste(df$amenities , collapse = "")
+all.string <- gsub("\\}\\{",",",all.string)
+all.string<- gsub("\"","",all.string)
+all.string<- gsub("\\{|\\}","",all.string)
 all.string.vector<- strsplit(all.string,',')
 df.frequency<-as.data.frame(sort(table(all.string.vector), decreasing = TRUE))
-tail(df.frequency)
+
 ```
+
+```{r}
+
+df.frequency<-df.frequency %>% mutate(percentage=Freq/nrow(df)*100)
+View(df.frequency)
+```
+
+```{r}
+df$feature_freq<-str_count(df$amenities,"Ethernet connection")
+df %>% arrange(desc(feature_freq)) %>% head() %>% select(feature_freq,amenities)
+
+ggplot(data=df %>% filter(price_bed<100),aes(x=as.factor(feature_freq),y=price_bed))+ geom_boxplot()
+```
+```{r}
+model<-lm(price_bed~feature_freq,data=df)
+summary(model)
+anova(model)
+```
+
+```{r}
+all.features <- df.frequency %>% filter(Freq<90) %>% select(all.string.vector) %>%  .[["all.string.vector"]]
+all.features<-as.character(all.features)
+all.features<-all.features[all.features!=""]
+
+df_with_features<-df
+for (feature in all.features){
+  
+df_with_features[,paste0("feature_",feature)]<-as.integer(grepl(feature, df$amenities))
+}
+
+
+colnames(df_with_features)<- make.names(colnames(df_with_features), unique = TRUE)
+col_feature<- grep("feature",colnames(df_with_features),value=TRUE)
+```
+
+## LM
+
+```{r}
+col_numerics<- colnames(df %>% select_if(is.numeric))
+
+
+df.only.num<-df %>% select(one_of(c(col_numerics,"host_is_superhost")))
+model1<-lm(availability_365~.-number_of_reviews-id-host_id-amenities-calendar_updated,data=df)
+summary(model1)
+```
+
+```{r}
+facto <- df %>% select_if(is.factor)
+df.factor.level<-facto %>% summarise_each(funs(nlevels(.))) %>% gather() %>% arrange(value)
+View(df.factor.level)
+```
+
 
