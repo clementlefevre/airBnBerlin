@@ -17,6 +17,7 @@ library(tidyr)
 library(tm)
 library(ggplot2)
 library(lubridate)
+library(caret)
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
@@ -136,16 +137,16 @@ View(df.factor.level)
 ## PCA
 
 ```{r}
-library(caret)
-library(ggbiplot)
+# dmy <- dummyVars(" ~ neighbourhood_group_cleansed", data = df)
+# trsf <- data.frame(predict(dmy, newdata = df))
+# 
+# df2<- cbind(df,trsf)
 
 df.pca<-  df %>% mutate_each(funs(ifelse(is.na(.),0,.)))#%>% filter(!is.na(number_of_reviews)) %>% filter(!is.na(first_review))%>% mutate_each(funs(ifelse(is.na(.),0,.)))
 
 
-pca.features <- df.pca # %>% select(-contains("booked")) %>%select(-contains("availability"))
-pca.cat <- df.pca %>% select(neighbourhood_group_cleansed)
-```
-```{r}
+pca.features <- df.pca  %>% select(-contains("booked")) %>%select(-contains("availability")) %>% select(-contains("neighbourhood_group_cleansed"))
+
 pca.trans <- preProcess(x = pca.features,method = c("BoxCox","center","scale"))
 pca.trans
 ```
@@ -153,12 +154,13 @@ pca.trans
 pca.preproc <- predict(pca.trans,newdata = pca.features)
 pca.pca <- prcomp(pca.preproc,center = FALSE)
 pca.pca
+summary(pca.pca)
 ```
 ```{r fig.width=12, fig.height=12}
 #Switching off scale factors (var.scale and scale variables)
 library(ggfortify)
 plot_pca<- function(df,feat){
- print(autoplot(pca.pca, data = df.pca,colour=feat,alpha=.4))
+ print(autoplot(pca.pca, data = df,colour=feat,alpha=.4))
 
 }
 
@@ -169,10 +171,10 @@ plot_pca<- function(df,feat){
 
 for (feato in colnames(df)){
    
-  if(grepl("review",feato)){
+  if(grepl("review",feato) | feato=="neighbourhood_group_cleansed"){
     print(feato)
   tryCatch(
-     plot_pca(df,feato),
+     plot_pca(df.pca,feato),
      error=function(error_message) {
             message(feato)
             
@@ -185,13 +187,4 @@ for (feato in colnames(df)){
   
 ```
 
-# Order by levels
-```{r}
-levels_df<- df %>%  
-     sapply(nlevels)%>% as.data.frame() 
-levels_df <-levels_df%>% mutate(fearure = rownames(levels_df))
-colnames(levels_df)<- c("num_features")
-levels_df %>% arrange(desc(num_features))
-
-```
 
