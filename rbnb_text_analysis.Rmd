@@ -1,6 +1,8 @@
 ---
 title: "R BnB Text Analysis"
-output: html_notebook
+output:
+  html_document: default
+  html_notebook: default
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
@@ -115,11 +117,7 @@ colnames(df_with_features)<- make.names(colnames(df_with_features), unique = TRU
 col_feature<- grep("feature",colnames(df_with_features),value=TRUE)
 ```
 
-### Add booked slots:
-```{r}
 
-
-```
 
 ## LM
 
@@ -141,10 +139,10 @@ View(df.factor.level)
 library(caret)
 library(ggbiplot)
 
-df.pca<-  df %>% mutate_each(funs(ifelse(is.na(.),0,.)))
+df.pca<-  df %>% mutate_each(funs(ifelse(is.na(.),0,.)))#%>% filter(!is.na(number_of_reviews)) %>% filter(!is.na(first_review))%>% mutate_each(funs(ifelse(is.na(.),0,.)))
 
 
-pca.features <- df.pca %>% select(-contains("booked")) %>%select(-contains("availability"))
+pca.features <- df.pca # %>% select(-contains("booked")) %>%select(-contains("availability"))
 pca.cat <- df.pca %>% select(neighbourhood_group_cleansed)
 ```
 ```{r}
@@ -158,14 +156,42 @@ pca.pca
 ```
 ```{r fig.width=12, fig.height=12}
 #Switching off scale factors (var.scale and scale variables)
+library(ggfortify)
+plot_pca<- function(df,feat){
+ print(autoplot(pca.pca, data = df.pca,colour=feat,alpha=.4))
+
+}
+
+```
 
 
-g <- ggbiplot(pca.pca, obs.scale = 1, var.scale = 1, 
-              groups = df$neighbourhood_group_cleansed, ellipse = TRUE, 
-              circle = TRUE)
-g <- g + scale_color_discrete(name = '')
-g <- g + theme(legend.direction = 'horizontal', 
-               legend.position = 'top')
-print(g)
+```{r}
+
+for (feato in colnames(df)){
+   
+  if(grepl("review",feato)){
+    print(feato)
+  tryCatch(
+     plot_pca(df,feato),
+     error=function(error_message) {
+            message(feato)
+            
+            message(error_message)
+            return(NA)
+
+  })
+  }
+}
+  
+```
+
+# Order by levels
+```{r}
+levels_df<- df %>%  
+     sapply(nlevels)%>% as.data.frame() 
+levels_df <-levels_df%>% mutate(fearure = rownames(levels_df))
+colnames(levels_df)<- c("num_features")
+levels_df %>% arrange(desc(num_features))
+
 ```
 
